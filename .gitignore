@@ -1,0 +1,9 @@
+node_modules/
+backend/vibewall.db
+backend/vibewall.db-wal
+backend/vibewall.db-shm
+.freellmapi/
+backend/.env
+.env
+*.log
+cloudflared.exe
