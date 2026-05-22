@@ -177,7 +177,6 @@ The moderation model is `google/gemma-4-26b-a4b-it:free` by default, with a 5-mo
 
 ## context
 
-Built as a final-year project at **NUTECH Islamabad**, 2026.  
 The wall lives (or lived) at a kiosk in the campus corridors.  
 Made softly, with chai, by anon ♡
 
@@ -185,4 +184,4 @@ Made softly, with chai, by anon ♡
 
 ## licence
 
-MIT — take it, fork it, hang your own wall somewhere.
+ Take it, fork it, hang your own wall somewhere.
