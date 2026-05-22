@@ -3,6 +3,7 @@ backend/vibewall.db
 backend/vibewall.db-wal
 backend/vibewall.db-shm
 .freellmapi/
+.claude/
 backend/.env
 .env
 *.log
