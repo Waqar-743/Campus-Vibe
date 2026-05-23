@@ -247,6 +247,35 @@
 
   /* HERO collage — draggable items */
   .hero-collage { position: relative; height: 480px; touch-action: none; user-select: none; }
+
+  /* Section-wide collage layer: polaroids float over the whole header and can be dragged anywhere. */
+  .hero-collage-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    touch-action: none;
+    overflow: hidden;
+  }
+  .hero-collage-layer > .drag-item { pointer-events: auto; }
+  .hero-collage-layer .polaroid { max-width: 100%; }
+  .hero-collage-layer .polaroid img { aspect-ratio: 4 / 5; object-fit: cover; }
+  .hero-collage-layer .drag-item.user-doodle .polaroid {
+    background: var(--paper);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.9) inset,
+      0 28px 50px -28px rgba(40,28,16,0.45),
+      0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent);
+  }
+  .hero-collage-layer .drag-item.user-doodle .polaroid img {
+    aspect-ratio: auto;
+    background: #faf6ed;
+    object-fit: contain;
+    padding: 4px;
+  }
+  @media (max-width: 760px) {
+    .hero-collage-layer { display: none; }
+  }
   .drag-item {
     position: absolute;
     cursor: grab;
@@ -616,6 +645,60 @@
     box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--espresso) 10%, transparent);
   }
   .input-clean:focus { box-shadow: inset 0 0 0 2px var(--accent); }
+
+  /* ----- HERO AURA (animated light rays) ----- */
+  .hero-aura {
+    position: absolute; inset: 0;
+    z-index: 0; pointer-events: none; overflow: hidden;
+  }
+
+  /* ----- RIBBON TRAILS CANVAS ----- */
+  .ribbons-canvas {
+    display: block;
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  /* ----- CHROMA GAMES SPOTLIGHT ----- */
+  .chroma-games {
+    position: relative;
+    --x: -9999px; --y: -9999px; --r: 300px;
+  }
+  .chroma-games-overlay {
+    position: absolute; inset: -24px;
+    pointer-events: none; z-index: 10;
+    backdrop-filter: grayscale(0.88) brightness(0.68);
+    -webkit-backdrop-filter: grayscale(0.88) brightness(0.68);
+    background: rgba(0, 0, 0, 0.001);
+    border-radius: 24px;
+    mask-image: radial-gradient(
+      circle var(--r) at var(--x) var(--y),
+      transparent 0%, transparent 12%,
+      rgba(0,0,0,0.10) 28%, rgba(0,0,0,0.35) 52%,
+      rgba(0,0,0,0.62) 76%, black 100%
+    );
+    -webkit-mask-image: radial-gradient(
+      circle var(--r) at var(--x) var(--y),
+      transparent 0%, transparent 12%,
+      rgba(0,0,0,0.10) 28%, rgba(0,0,0,0.35) 52%,
+      rgba(0,0,0,0.62) 76%, black 100%
+    );
+  }
+  .chroma-game-card {
+    --mouse-x: 50%; --mouse-y: 50%;
+    position: relative; border-radius: 20px;
+  }
+  .chroma-game-card::before {
+    content: ''; position: absolute; inset: 0;
+    z-index: 5; pointer-events: none; border-radius: inherit;
+    background: radial-gradient(
+      circle at var(--mouse-x) var(--mouse-y),
+      rgba(243, 222, 164, 0.22) 0%, transparent 65%
+    );
+    opacity: 0; transition: opacity 0.4s ease;
+  }
+  .chroma-game-card:hover::before { opacity: 1; }
 </style>
 </head>
 <body>

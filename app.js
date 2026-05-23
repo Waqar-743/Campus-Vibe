@@ -177,9 +177,13 @@ const MOOD_MAP_SEED = [
 ];
 
 const HERO_COLLAGE = [
-  { img: PHOTOS.library, cap: '5pm light, library', left: '4%',  top: '6%',  width: '44%', rot: -3 },
-  { img: PHOTOS.cafe,    cap: 'dhaba run, late',     left: '52%', top: '4%',  width: '44%', rot: 2.5 },
-  { img: PHOTOS.friends, cap: 'fun with friends',    left: '22%', top: '52%', width: '42%', rot: -1.5 }
+  { img: PHOTOS.library,  cap: '5pm light, library',  left: '72%', top: '20%', width: '20%', rot: -3 },
+  { img: PHOTOS.cafe,     cap: 'dhaba run, late',     left: '50%', top: '8%',  width: '18%', rot: 2.5 },
+  { img: PHOTOS.friends,  cap: 'fun with friends',    left: '78%', top: '60%', width: '18%', rot: -1.5 },
+  { img: PHOTOS.roof,     cap: 'golden hour, A-block',left: '54%', top: '45%', width: '16%', rot: 2 },
+  { img: PHOTOS.drawing,  cap: "today's doodle",      left: '88%', top: '32%', width: '11%', rot: -2.5 },
+  { img: PHOTOS.gossip,   cap: 'chai & chatter',      left: '60%', top: '82%', width: '14%', rot: 1.5 },
+  { img: PHOTOS.bench,    cap: 'between classes',     left: '40%', top: '86%', width: '12%', rot: -1 }
 ];
 
 // ---------- ICONS (inline svg as helpers) ----------
@@ -388,14 +392,122 @@ function handleLogoTap() {
   if (_logoTaps >= 5) { _logoTaps = 0; openEasterEgg(); }
 }
 
+// ---------- EFFECT: HERO LIGHT AURA ----------
+// Animated multi-colour radial-gradient backdrop that follows the mouse.
+// Colours are drawn from the campus palette (butter, terra, sage).
+function animateHeroAura(el) {
+  let tx = 45, ty = 20, cx = 45, cy = 20, t = 0;
+  const section = el.parentElement;
+  if (section) {
+    section.addEventListener('mousemove', e => {
+      const r = section.getBoundingClientRect();
+      tx = ((e.clientX - r.left) / r.width) * 100;
+      ty = Math.min(((e.clientY - r.top) / r.height) * 60, 50);
+    });
+  }
+  (function frame() {
+    if (!el.isConnected) return;
+    requestAnimationFrame(frame);
+    t += 0.009;
+    cx += (tx - cx) * 0.035;
+    cy += (ty - cy) * 0.035;
+    const pb = 30 + Math.sin(t * 0.55) * 9;
+    const pt = 20 + Math.sin(t * 0.38 + 1.2) * 6;
+    const ps = 16 + Math.sin(t * 0.44 + 2.6) * 5;
+    el.style.background = [
+      `radial-gradient(${pb}% ${pb}% at ${cx}% ${cy}%, rgba(243,222,164,0.26) 0%, transparent 72%)`,
+      `radial-gradient(${pt}% ${pt}% at ${Math.min(cx+10,90)}% ${Math.min(cy+14,55)}%, rgba(201,120,98,0.13) 0%, transparent 68%)`,
+      `radial-gradient(${ps}% ${ps}% at ${Math.max(cx-14,10)}% ${Math.min(cy+22,60)}%, rgba(168,184,158,0.10) 0%, transparent 62%)`
+    ].join(',');
+  })();
+}
+
+// ---------- EFFECT: CANVAS RIBBON TRAILS ----------
+// Three spring-physics mouse trails in rose / terra / butter colours.
+function initRibbons(canvas) {
+  if (!canvas || !canvas.parentElement) return;
+  const ctx = canvas.getContext('2d');
+  let w = 0, h = 0;
+  const TRAILS = [
+    { rgb:[232,197,184], ox:  0, oy: 0, vx:0, vy:0, px:-400, py:-400, pts:[], thick:3.5 },
+    { rgb:[201,120, 98], ox: 14, oy: 7, vx:0, vy:0, px:-400, py:-400, pts:[], thick:2.8 },
+    { rgb:[243,222,164], ox:-12, oy: 9, vx:0, vy:0, px:-400, py:-400, pts:[], thick:2.0 }
+  ];
+  const MAX = 60, K = 0.065, FR = 0.88;
+  let mx = -400, my = -400;
+  const section = canvas.parentElement;
+  section.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    mx = e.clientX - r.left;
+    my = e.clientY - r.top;
+  });
+  section.addEventListener('mouseleave', () => { mx = my = -400; });
+  function resize() {
+    const r = section.getBoundingClientRect();
+    w = canvas.width  = Math.max(Math.round(r.width),  1);
+    h = canvas.height = Math.max(Math.round(r.height), 1);
+  }
+  resize();
+  window.addEventListener('resize', resize, { passive: true });
+  (function frame() {
+    if (!canvas.isConnected) return;
+    requestAnimationFrame(frame);
+    ctx.clearRect(0, 0, w, h);
+    for (const tr of TRAILS) {
+      const tx = mx < 0 ? tr.px : mx + tr.ox;
+      const ty = my < 0 ? tr.py : my + tr.oy;
+      tr.vx += (tx - tr.px) * K; tr.vy += (ty - tr.py) * K;
+      tr.vx *= FR; tr.vy *= FR;
+      tr.px += tr.vx; tr.py += tr.vy;
+      tr.pts.push({ x: tr.px, y: tr.py });
+      if (tr.pts.length > MAX) tr.pts.shift();
+      if (tr.pts.length < 2) continue;
+      const [cr, cg, cb] = tr.rgb;
+      for (let i = 1; i < tr.pts.length; i++) {
+        const a = Math.pow(i / tr.pts.length, 1.8) * 0.68;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${cr},${cg},${cb},${a})`;
+        ctx.lineWidth = tr.thick * (i / tr.pts.length);
+        ctx.lineCap = 'round';
+        ctx.moveTo(tr.pts[i-1].x, tr.pts[i-1].y);
+        ctx.lineTo(tr.pts[i].x, tr.pts[i].y);
+        ctx.stroke();
+      }
+    }
+  })();
+}
+
+// ---------- EFFECT: CHROMA SPOTLIGHT ON GAMES GRID ----------
+// Updates --x/--y on the container and per-card --mouse-x/--mouse-y so that
+// the CSS overlay desaturates cards outside the spotlight radius.
+function initChromaGamesGrid(container) {
+  container.addEventListener('mousemove', e => {
+    const r = container.getBoundingClientRect();
+    container.style.setProperty('--x', (e.clientX - r.left) + 'px');
+    container.style.setProperty('--y', (e.clientY - r.top)  + 'px');
+    for (const card of container.querySelectorAll('.chroma-game-card')) {
+      const cr = card.getBoundingClientRect();
+      card.style.setProperty('--mouse-x', ((e.clientX - cr.left) / cr.width  * 100) + '%');
+      card.style.setProperty('--mouse-y', ((e.clientY - cr.top)  / cr.height * 100) + '%');
+    }
+  });
+  container.addEventListener('mouseleave', () => {
+    container.style.setProperty('--x', '-9999px');
+    container.style.setProperty('--y', '-9999px');
+  });
+}
+
 // ---------- HERO ----------
 function Hero() {
   const now = new Date();
   const hr = now.getHours();
   const greet = hr < 5 ? 'still up?' : hr < 12 ? 'morning, you' : hr < 17 ? 'afternoon, you' : hr < 21 ? 'evening, you' : 'late one tonight';
 
-  const heroSection = h('section', { style: { position:'relative', paddingTop:'140px', paddingBottom:'80px' } },
-    h('div', { class: 'container' },
+  const heroSection = h('section', { style: { position:'relative', paddingTop:'140px', paddingBottom:'120px', minHeight:'780px', overflow:'hidden' } },
+    h('div', { class: 'hero-aura' }),
+    h('canvas', { class: 'ribbons-canvas' }),
+    HeroCollage(),
+    h('div', { class: 'container', style: { position:'relative', zIndex:'1' } },
       h('div', { style: { display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'32px', flexWrap:'wrap', gap:'16px' } },
         reveal(h('div', null, eyebrow('Soft place between classes · NUTECH ’26'))),
         reveal(h('div', { class: 'mono', style: { fontSize:'11px', color:'var(--mocha)', letterSpacing:'0.16em', textTransform:'uppercase', textAlign:'right' } },
@@ -421,7 +533,7 @@ function Hero() {
             stat('74%', 'campus feels okay')
           )
         ), 180),
-        reveal(HeroCollage(), 260)
+        h('div', null) /* right cell intentionally empty — polaroids float above via .hero-collage-layer */
       )
     )
   );
@@ -436,8 +548,14 @@ function stat(n, l) {
 }
 
 // ---------- DRAGGABLE HERO COLLAGE ----------
+// Absolutely-positioned layer that spans the whole hero section so polaroids
+// can be dragged anywhere across the header (not just a small grid cell).
+let _heroCollageLayer = null;
+let _userDoodleCount = 0;
+
 function HeroCollage() {
-  const wrap = h('div', { class: 'hero-collage' });
+  const wrap = h('div', { class: 'hero-collage-layer' });
+  _heroCollageLayer = wrap;
 
   HERO_COLLAGE.forEach((item, i) => {
     const inner = h('div', { class: 'polaroid', style: { transform: `rotate(${item.rot}deg)`, position:'static' } },
@@ -455,27 +573,47 @@ function HeroCollage() {
     wrap.appendChild(node);
   });
 
-  // Floating tiny note
+  // Floating tiny "vibe wall" badge bubble
   const note = h('div', {
     class: 'drag-item',
-    style: { right:'10%', bottom:'20px', width:'120px', height:'120px', borderRadius:'999px', background:'var(--paper)', display:'grid', placeItems:'center', boxShadow:'0 20px 40px -20px rgba(0,0,0,0.35)', left:'auto', top:'auto', '--r':'8deg', transform:'rotate(8deg)' }
+    style: { left:'86%', top:'82%', width:'100px', height:'100px', borderRadius:'999px', background:'var(--paper)', display:'grid', placeItems:'center', boxShadow:'0 20px 40px -20px rgba(0,0,0,0.35)', '--r':'8deg', transform:'rotate(8deg)' }
   },
-    h('div', { class: 'serif-i', style: { fontSize:'14px', color:'var(--accent)', textAlign:'center', lineHeight:'1.1' },
+    h('div', { class: 'serif-i', style: { fontSize:'13px', color:'var(--accent)', textAlign:'center', lineHeight:'1.1' },
       html: 'vibe<br />wall<br /><span style="font-size:9px;color:var(--mocha);letter-spacing:0.1em;font-style:normal;font-family: JetBrains Mono">est. ’26</span>' })
   );
-  // Adjust positioning: convert right/bottom to left/top after first paint
   enableDrag(note, wrap);
   wrap.appendChild(note);
-  // Move note to absolute left/top
-  requestAnimationFrame(() => {
-    const wrapRect = wrap.getBoundingClientRect();
-    const noteRect = note.getBoundingClientRect();
-    note.style.left = (noteRect.left - wrapRect.left) + 'px';
-    note.style.top  = (noteRect.top - wrapRect.top) + 'px';
-    note.style.right = 'auto'; note.style.bottom = 'auto';
-  });
 
   return wrap;
+}
+
+// Adds a user-submitted doodle (svg data url) to the hero collage as a draggable polaroid.
+function addDoodleToHero(doodleImg) {
+  if (!_heroCollageLayer) _heroCollageLayer = document.querySelector('.hero-collage-layer');
+  if (!_heroCollageLayer) return;
+
+  const slots = [
+    { left:'34%', top:'58%', width:'15%', rot:-3 },
+    { left:'66%', top:'34%', width:'14%', rot: 2.5 },
+    { left:'46%', top:'66%', width:'13%', rot: 1.5 },
+    { left:'80%', top:'48%', width:'12%', rot:-2 }
+  ];
+  const slot = slots[_userDoodleCount % slots.length];
+  _userDoodleCount++;
+
+  const inner = h('div', { class: 'polaroid', style: { transform: `rotate(${slot.rot}deg)`, position:'static' } },
+    h('img', { src: doodleImg, alt: 'your doodle', loading:'lazy', draggable:'false' }),
+    h('div', { class: 'cap hand' }, 'your doodle ♡')
+  );
+  const node = h('div', {
+    class: 'drag-item user-doodle',
+    style: { left: slot.left, top: slot.top, width: slot.width, '--r': slot.rot + 'deg', zIndex: '6', animationDelay: '0.4s' }
+  },
+    h('span', { class: 'drag-hint' }, '☍ your art — drag me'),
+    inner
+  );
+  enableDrag(node, _heroCollageLayer);
+  _heroCollageLayer.appendChild(node);
 }
 
 function enableDrag(node, container) {
@@ -1091,7 +1229,11 @@ function CreativeDropZone() {
         ),
         h('div', { style:{ display:'flex', gap:'10px', flexWrap:'wrap' } },
           pillBtn('open the pad', { variant:'accent', icon: I.arrowUR(14), onClick: () => openCompose('doodle') }),
-          pillBtn("see today's prompt", { variant:'ghost', icon: I.brush(14), onClick: () => { toast("today's prompt: " + SPARKS[new Date().getDate() % SPARKS.length], 3200); } })
+          pillBtn("see today's prompt", { variant:'ghost', icon: I.brush(14), onClick: () => {
+            const prompt = SPARKS[new Date().getDate() % SPARKS.length];
+            toast("today's prompt: " + prompt, 3600);
+            setTimeout(() => openCompose('doodle'), 350);
+          } })
         )
       ),
       h('div', { style: { background:'var(--paper)', borderRadius:'18px', padding:'18px', boxShadow:'inset 0 0 0 1px color-mix(in oklch, var(--espresso) 10%, transparent)' } },
@@ -1282,8 +1424,9 @@ function Games() {
           )
         ), 140)
       ),
-      h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:'22px' } },
-        GAMES.map((g, i) => reveal(h('div', { class:'bezel lift', style:{ background:`color-mix(in oklch, ${g.color} 30%, transparent)` } },
+      h('div', { class:'chroma-games', style:{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:'22px' } },
+        h('div', { class:'chroma-games-overlay' }),
+        GAMES.map((g, i) => reveal(h('div', { class:'chroma-game-card bezel lift', style:{ background:`color-mix(in oklch, ${g.color} 30%, transparent)` } },
           h('div', { class:'bezel-inner', style:{ padding:'14px' } },
             h('div', { class:'game-cover', style:{ backgroundImage:`url(${g.cover})` } },
               h('div', { style:{ position:'absolute', inset:'0', background:`linear-gradient(180deg, transparent 50%, color-mix(in oklch, ${g.color} 75%, black) 100%)` } }),
@@ -1872,6 +2015,8 @@ function ComposeModal() {
       const dataUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgStr);
       newItem = { _id: 'u' + Date.now(), kind:'doodle', img: dataUrl, label:'your doodle', mood: state.mood, who:'you, just now', tilt: 0, pinned:true };
       doodleState.paths = [];
+      // Float a copy up to the hero collage so the user sees their art on the header.
+      try { addDoodleToHero(dataUrl); } catch (_) {}
     } else if (tab === 'poem') {
       if (!state.composeDraft.poem[0].trim() && !state.composeDraft.poem[1].trim()) { toast('write two lines first ✎'); return; }
       newItem = { _id: 'u' + Date.now(), kind:'poem', lines: state.composeDraft.poem.slice(), mood: state.mood, who:'you, just now', pinned:true };
@@ -2007,7 +2152,15 @@ async function mount() {
   _mounted = true;
   setAccentForMood(state.mood);
   const root = document.getElementById('root');
-  if (root) root.appendChild(App());
+  if (root) {
+    root.appendChild(App());
+    const heroAura    = root.querySelector('.hero-aura');
+    const ribbonsCanvas = root.querySelector('.ribbons-canvas');
+    const chromaGames = root.querySelector('.chroma-games');
+    if (heroAura)      animateHeroAura(heroAura);
+    if (ribbonsCanvas) initRibbons(ribbonsCanvas);
+    if (chromaGames)   initChromaGamesGrid(chromaGames);
+  }
 
   // Ping backend, then merge any persisted posts onto the wall.
   await api.ping();
