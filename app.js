@@ -1897,29 +1897,57 @@ function ComposeModal() {
   function doodleBody() {
     let svgEl;
     const colors = ['var(--espresso)','var(--accent)','var(--sage-deep)','var(--butter-deep)','var(--rose-deep)','var(--plum)'];
+    // Resolve a CSS variable to its current hex value so the SVG stroke attribute renders.
+    function resolveColor(c) {
+      if (!c) return '#2a221b';
+      if (c.startsWith('var(')) {
+        const name = c.slice(4, -1).trim();
+        const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return v || '#2a221b';
+      }
+      return c;
+    }
     function redraw() {
-      svgEl.innerHTML = doodleState.paths.map(p => `<path d="${p.d}" stroke="${p.c}" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+      // Use `style="stroke:..."` so CSS variables resolve. (The bare `stroke` attribute does NOT support var().)
+      svgEl.innerHTML = doodleState.paths.map(p =>
+        `<path d="${p.d}" style="stroke:${resolveColor(p.c)};stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round"/>`
+      ).join('');
     }
     function getXY(e) {
       const r = svgEl.getBoundingClientRect();
-      const t = e.touches ? e.touches[0] : e;
+      const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
       const x = (t.clientX - r.left) * (800 / r.width);
       const y = (t.clientY - r.top) * (380 / r.height);
       return x.toFixed(1) + ',' + y.toFixed(1);
     }
-    const board = h('div', { style:{ borderRadius:'14px', overflow:'hidden', border:'1px solid color-mix(in oklch, var(--espresso) 10%, transparent)' } });
-    board.innerHTML = `<svg viewBox="0 0 800 380" preserveAspectRatio="xMidYMid meet" class="doodle-pad" style="width:100%;height:380px;display:block;touch-action:none;cursor:crosshair" xmlns="http://www.w3.org/2000/svg"></svg>`;
+    const board = h('div', { class:'doodle-board-wrap', style:{ borderRadius:'14px', overflow:'hidden', border:'1px solid color-mix(in oklch, var(--espresso) 10%, transparent)', background:'var(--paper)' } });
+    // preserveAspectRatio="none" → the viewBox stretches to fill the rendered svg so the cursor
+    // and the stroke are always aligned, regardless of canvas aspect ratio (mobile portrait etc.)
+    board.innerHTML = `<svg viewBox="0 0 800 380" preserveAspectRatio="none" class="doodle-pad doodle-svg" xmlns="http://www.w3.org/2000/svg"></svg>`;
     svgEl = board.firstChild;
-    const onDown = (e) => { doodleState.drawing = true; doodleState.paths.push({ d:'M' + getXY(e), c: doodleState.color }); redraw(); e.preventDefault(); };
-    const onMove = (e) => { if (!doodleState.drawing) return; const cur = doodleState.paths[doodleState.paths.length-1]; cur.d += ' L' + getXY(e); redraw(); };
+    const onDown = (e) => {
+      doodleState.drawing = true;
+      doodleState.paths.push({ d:'M' + getXY(e), c: doodleState.color });
+      redraw();
+      e.preventDefault();
+    };
+    const onMove = (e) => {
+      if (!doodleState.drawing) return;
+      const cur = doodleState.paths[doodleState.paths.length-1];
+      if (!cur) return;
+      cur.d += ' L' + getXY(e);
+      redraw();
+      e.preventDefault();
+    };
     const onUp = () => { doodleState.drawing = false; };
     svgEl.addEventListener('mousedown', onDown);
     svgEl.addEventListener('mousemove', onMove);
     svgEl.addEventListener('mouseup', onUp);
     svgEl.addEventListener('mouseleave', onUp);
-    svgEl.addEventListener('touchstart', onDown);
-    svgEl.addEventListener('touchmove', onMove);
+    svgEl.addEventListener('touchstart', onDown, { passive: false });
+    svgEl.addEventListener('touchmove', onMove, { passive: false });
     svgEl.addEventListener('touchend', onUp);
+    svgEl.addEventListener('touchcancel', onUp);
     redraw();
 
     return h('div', null,
